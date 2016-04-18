@@ -8,6 +8,7 @@
 #include <linux/ipc_namespace.h>
 #include <linux/pid_namespace.h>
 #include <linux/user_namespace.h>
+#include <linux/deleg_namespace.h>
 #include "internal.h"
 
 
@@ -28,6 +29,9 @@ static const struct proc_ns_operations *ns_entries[] = {
 	&userns_operations,
 #endif
 	&mntns_operations,
+#ifdef CONFIG_DELEG_NS
+	&delegns_operations,
+#endif
 };
 
 static const char *proc_ns_follow_link(struct dentry *dentry, void **cookie)

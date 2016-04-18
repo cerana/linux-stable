@@ -22,6 +22,7 @@
 #include <linux/pid_namespace.h>
 #include <net/net_namespace.h>
 #include <linux/ipc_namespace.h>
+#include <linux/deleg_namespace.h>
 #include <linux/proc_ns.h>
 #include <linux/file.h>
 #include <linux/syscalls.h>
@@ -39,6 +40,7 @@ struct nsproxy init_nsproxy = {
 #ifdef CONFIG_NET
 	.net_ns			= &init_net,
 #endif
+	.deleg_ns		= &init_deleg_ns,
 };
 
 static inline struct nsproxy *create_nsproxy(void)
@@ -98,8 +100,17 @@ static struct nsproxy *create_new_namespaces(unsigned long flags,
 		goto out_net;
 	}
 
+	new_nsp->deleg_ns = copy_deleg_ns(flags, user_ns, tsk->nsproxy->deleg_ns);
+	if (IS_ERR(new_nsp->deleg_ns)) {
+		err = PTR_ERR(new_nsp->deleg_ns);
+		goto out_deleg;
+	}
+
 	return new_nsp;
 
+out_deleg:
+	if (new_nsp->net_ns)
+		put_net(new_nsp->net_ns);
 out_net:
 	if (new_nsp->pid_ns_for_children)
 		put_pid_ns(new_nsp->pid_ns_for_children);
@@ -128,7 +139,8 @@ int copy_namespaces(unsigned long flags, struct task_struct *tsk)
 	struct nsproxy *new_ns;
 
 	if (likely(!(flags & (CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC |
-			      CLONE_NEWPID | CLONE_NEWNET)))) {
+			      CLONE_NEWPID | CLONE_NEWNET |
+			      CLONE_NEWDELEG)))) {
 		get_nsproxy(old_ns);
 		return 0;
 	}
@@ -165,7 +177,10 @@ void free_nsproxy(struct nsproxy *ns)
 		put_ipc_ns(ns->ipc_ns);
 	if (ns->pid_ns_for_children)
 		put_pid_ns(ns->pid_ns_for_children);
-	put_net(ns->net_ns);
+	if (ns->net_ns)
+		put_net(ns->net_ns);
+	if (ns->deleg_ns)
+		put_deleg_ns(ns->deleg_ns);
 	kmem_cache_free(nsproxy_cachep, ns);
 }
 
@@ -180,7 +195,8 @@ int unshare_nsproxy_namespaces(unsigned long unshare_flags,
 	int err = 0;
 
 	if (!(unshare_flags & (CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC |
-			       CLONE_NEWNET | CLONE_NEWPID)))
+			       CLONE_NEWNET | CLONE_NEWPID |
+			       CLONE_NEWDELEG)))
 		return 0;
 
 	user_ns = new_cred ? new_cred->user_ns : current_user_ns();

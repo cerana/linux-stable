@@ -1223,6 +1223,12 @@ config NET_NS
 	  Allow user space to create what appear to be multiple instances
 	  of the network stack.
 
+config DELEG_NS
+	bool "Delegation namespace"
+	default y
+	help
+	  Allow tasks in the namespace to access delegated resources.
+
 endif # NAMESPACES
 
 config SCHED_AUTOGROUP

@@ -8,6 +8,7 @@ struct mnt_namespace;
 struct uts_namespace;
 struct ipc_namespace;
 struct pid_namespace;
+struct deleg_namespace;
 struct fs_struct;
 
 /*
@@ -32,7 +33,8 @@ struct nsproxy {
 	struct ipc_namespace *ipc_ns;
 	struct mnt_namespace *mnt_ns;
 	struct pid_namespace *pid_ns_for_children;
-	struct net 	     *net_ns;
+	struct net	     *net_ns;
+	struct deleg_namespace *deleg_ns;
 };
 extern struct nsproxy init_nsproxy;
 
